@@ -119,7 +119,7 @@ struct sii8620_platform_data {
 	bool mhl3_dvi_set;
 	bool dvi_ver_ck;
 };
-extern int system_rev;
+extern unsigned int system_rev;
 int acc_register_notifier(struct notifier_block *nb);
 #endif /* __SII8620_H__ */
 
