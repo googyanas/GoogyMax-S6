@@ -2,6 +2,12 @@
 # Automatically generated file; DO NOT EDIT.
 # Linux/arm64 3.10.61 Kernel Configuration
 #
+### GoogyMax-S6 ###
+#
+CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS=y
+#
+###################
+#
 CONFIG_ARM64=y
 CONFIG_64BIT=y
 CONFIG_ARCH_PHYS_ADDR_T_64BIT=y
