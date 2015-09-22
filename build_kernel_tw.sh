@@ -32,7 +32,7 @@ cd /home/googy/Kernel/Googy-Max-S6/Out
 cd /home/googy/Kernel/Googy-Max-S6/Release
 zip -r ../Googy-Max-S6_Kernel_${1}_CWM.zip .
 
-adb push /home/googy/Kernel/Googy-Max-S6/Googy-Max-S6_Kernel_${1}_CWM.zip /storage/sdcard0/Googy-Max-S6_Kernel_${1}_CWM.zip
+adb push /home/googy/Kernel/Googy-Max-S6/Googy-Max-S6_Kernel_${1}_CWM.zip /sdcard/Googy-Max-S6_Kernel_${1}_CWM.zip
 
 adb kill-server
 
