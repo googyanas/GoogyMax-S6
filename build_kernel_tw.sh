@@ -24,6 +24,8 @@ rm -rf /home/googy/Kernel/Googy-Max-S6/Out/ramdisk/lib/modules/*
 find -name '*.ko' -exec cp -av {} /home/googy/Kernel/Googy-Max-S6/Out/ramdisk/lib/modules/ \;
 ${CROSS_COMPILE}strip --strip-unneeded /home/googy/Kernel/Googy-Max-S6/Out/ramdisk/lib/modules/*
 
+./tools/dtbtool -o /home/googy/Kernel/Googy-Max-S6/Out/dt.img -s 2048 -p ./scripts/dtc/ arch/arm64/boot/dts/
+
 cd /home/googy/Kernel/Googy-Max-S6/Out
 ./packimg.sh
 
