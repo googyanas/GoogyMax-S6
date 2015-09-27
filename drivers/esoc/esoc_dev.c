@@ -293,6 +293,10 @@ static int esoc_dev_open(struct inode *inode, struct file *file)
 	unsigned int minor = iminor(inode);
 
 	esoc_udev = esoc_udev_get_by_minor(minor);
+	if(!esoc_udev) {
+		pr_err("%s : esoc dev find error\n",__func__);
+		return -ENODEV;
+	}
 	esoc_clink = get_esoc_clink(esoc_udev->clink->id);
 
 	uhandle = kzalloc(sizeof(*uhandle), GFP_KERNEL);

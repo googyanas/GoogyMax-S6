@@ -831,7 +831,7 @@ int ecryptfs_derive_iv(char *iv, struct ecryptfs_crypt_stat *crypt_stat,
 		       loff_t offset);
 #if defined(CONFIG_MMC_DW_FMP_ECRYPT_FS) || defined(CONFIG_UFS_FMP_ECRYPT_FS)
 void ecryptfs_propagate_rapages(struct file *file, unsigned int crypt);
-void ecryptfs_propagate_fmpinfo(struct inode *inode, unsigned int flag);
+int ecryptfs_propagate_fmpinfo(struct inode *inode, unsigned int flag);
 #endif
 
 #ifdef CONFIG_WTL_ENCRYPTION_FILTER

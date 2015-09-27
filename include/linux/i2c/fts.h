@@ -81,7 +81,7 @@ struct fts_i2c_platform_data {
 	int (*led_power) (void *, bool);
 #endif
 #ifdef FTS_SUPPORT_SIDE_GESTURE
-	bool support_sidegesture;
+	int support_sidegesture;
 #endif
 #ifdef FTS_SUPPORT_2NDSCREEN
 	bool support_2ndscreen;

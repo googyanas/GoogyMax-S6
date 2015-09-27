@@ -48,10 +48,6 @@
 #include "ecryptfs_dek.h"
 #endif
 
-#if defined(CONFIG_FIPS_FMP)
-extern bool in_fmp_fips_err(void);
-#endif
-
 static int
 ecryptfs_decrypt_page_offset(struct ecryptfs_crypt_stat *crypt_stat,
 			     struct page *dst_page, int dst_offset,
@@ -707,14 +703,6 @@ int ecryptfs_encrypt_page(struct page *page)
 	
 #if defined(CONFIG_MMC_DW_FMP_ECRYPT_FS) || defined(CONFIG_UFS_FMP_ECRYPT_FS)
 	if (mount_crypt_stat->flags & ECRYPTFS_USE_FMP) {
-#if defined(CONFIG_FIPS_FMP)
-		if (unlikely(in_fmp_fips_err())) {
-			rc = -EPERM;
-			ecryptfs_printk(KERN_ERR, "Error encrypting fmp "
-					"due to fips in error\n");
-			goto out;
-		}
-#endif
 		enc_extent_virt = kmap(page);
 		if (!enc_extent_virt) {
 			rc = -ENOMEM;
@@ -918,14 +906,6 @@ int ecryptfs_decrypt_page(struct page *page)
 	
 #if defined(CONFIG_MMC_DW_FMP_ECRYPT_FS) || defined(CONFIG_UFS_FMP_ECRYPT_FS)
 	if (mount_crypt_stat->flags & ECRYPTFS_USE_FMP) {
-#if defined(CONFIG_FIPS_FMP)
-		if (unlikely(in_fmp_fips_err())) {
-			rc = -EPERM;
-			ecryptfs_printk(KERN_ERR, "Error encrypting fmp "
-					"due to fips in error\n");
-			goto out;
-		}
-#endif
 		enc_extent_virt = kmap(page);
 		if (!enc_extent_virt) {
 			rc = -ENOMEM;

@@ -30,7 +30,7 @@
 #include "dciTui.h"
 #include "tlcTui.h"
 #include "tui-hal.h"
-#ifdef CONFIG_TRUSTED_UI_TOUCH_ENABLE
+#if defined(CONFIG_TOUCHSCREEN_FTS) || defined(CONFIG_TOUCHSCREEN_FTS5AD56)
 #include <linux/i2c/fts.h>
 #endif
 
@@ -484,7 +484,7 @@ uint32_t hal_tui_deactivate(void)
 	switch_set_state(&tui_switch, TRUSTEDUI_MODE_VIDEO_SECURED);
 	pr_info(KERN_ERR "Disable touch!\n");
 	disable_irq(tsp_irq_num);
-#ifdef CONFIG_TRUSTED_UI_TOUCH_ENABLE
+#if defined(CONFIG_TOUCHSCREEN_FTS) || defined(CONFIG_TOUCHSCREEN_FTS5AD56)
 	tui_delay(5);
 	trustedui_mode_on();
 	tui_delay(95);
