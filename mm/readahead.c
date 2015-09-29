@@ -390,7 +390,7 @@ static int try_context_readahead(struct address_space *mapping,
 	 * no history pages:
 	 * it could be a random read
 	 */
-	if (size <= req_size)
+	if (!size <= req_size)
 		return 0;
 
 	/*
