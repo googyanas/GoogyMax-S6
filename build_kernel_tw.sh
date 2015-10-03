@@ -30,10 +30,10 @@ cd /home/googy/Kernel/Googy-Max-S6/Out
 ./packimg.sh
 
 cd /home/googy/Kernel/Googy-Max-S6/Release
-zip -r ../Googy-Max-S6_Kernel_${1}_CWM.zip .
+zip -r ../Googy-Max-S6_Kernel_${1}.zip .
 
-adb push /home/googy/Kernel/Googy-Max-S6/Googy-Max-S6_Kernel_${1}_CWM.zip /sdcard/Googy-Max-S6_Kernel_${1}_CWM.zip
+adb push /home/googy/Kernel/Googy-Max-S6/Googy-Max-S6_Kernel_${1}.zip /sdcard/Googy-Max-S6_Kernel_${1}.zip
 
 adb kill-server
 
-echo "Googy-Max-S6_Kernel_${1}_CWM.zip READY !"
+echo "Googy-Max-S6_Kernel_${1}.zip READY !"
