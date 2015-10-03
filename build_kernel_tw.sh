@@ -1,8 +1,8 @@
 #!/bin/sh
 export KERNELDIR=`readlink -f .`
 export PARENT_DIR=`readlink -f ..`
-# export CROSS_COMPILE=/usr/bin/aarch64-linux-gnu-
-export CROSS_COMPILE=/home/googy/Downloads/linaro49/bin/aarch64-linux-gnu-
+export CROSS_COMPILE=/usr/bin/aarch64-linux-gnu-
+# export CROSS_COMPILE=/home/googy/Downloads/linaro49/bin/aarch64-linux-gnu-
 # export KCONFIG_NOTIMESTAMP=true
 # export USE_SEC_FIPS_MODE=true
 
