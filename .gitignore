@@ -128,3 +128,4 @@ GTAGS
 /scripts/dtc/dtc-parser.tab.c
 /scripts/dtc/dtc-parser.tab.h
 /tools/dt.img
+fips_fmp_utils
