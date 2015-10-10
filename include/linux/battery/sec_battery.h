@@ -42,7 +42,13 @@
 
 #include <linux/sec_batt.h>
 
-
+#if defined(CONFIG_CHARGING_VZWCONCEPT)
+#define STORE_MODE_CHARGING_MAX 35
+#define STORE_MODE_CHARGING_MIN 30
+#else
+#define STORE_MODE_CHARGING_MAX 70
+#define STORE_MODE_CHARGING_MIN 60
+#endif
 
 #define ADC_CH_COUNT		10
 #define ADC_SAMPLE_COUNT	10
@@ -234,6 +240,7 @@ struct sec_battery_info {
 #endif
 #if defined(CONFIG_WIRELESS_CHARGER_INBATTERY) || defined(CONFIG_WIRELESS_CHARGER_HIGH_VOLTAGE)
 	int cc_cv_mode;
+	bool full_mode;
 #endif
 #if defined(CONFIG_CALC_TIME_TO_FULL)
 	int timetofull;

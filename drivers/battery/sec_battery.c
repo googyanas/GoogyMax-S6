@@ -272,6 +272,7 @@ static int sec_bat_set_charge(
 		battery->full_check_cnt = 0;
 #if defined(CONFIG_WIRELESS_CHARGER_INBATTERY) || defined(CONFIG_WIRELESS_CHARGER_HIGH_VOLTAGE)
 		battery->cc_cv_mode = 0;
+		battery->full_mode = false; // need to check
 #endif
 	}
 
@@ -2767,19 +2768,38 @@ static void sec_bat_cc_cv_mode_check(struct sec_battery_info *battery)
 {
 	union power_supply_propval value;
 
-	pr_info("%s battery->wc_status = %d, battery->cc_cv_mode = %d \n", __func__,battery->wc_status,battery->cc_cv_mode);
+	pr_info("%s battery->wc_status = %d, battery->cc_cv_mode = %d \n", __func__,battery->wc_status, battery->cc_cv_mode);
 	if ( (battery->wc_status != SEC_WIRELESS_PAD_NONE) &&
 		!battery->cc_cv_mode &&
 		(battery->charging_passed_time > 10)) {
-		pr_info("%s changed wireless vout voltage to default value, charging time = %ld \n",__func__, battery->charging_passed_time);
+
 		battery->cc_cv_mode = 1;
 
-		value.intval = WIRELESS_VRECT_ADJ_OFF;
-		psy_do_property(battery->pdata->wireless_charger_name, set,
-			POWER_SUPPLY_PROP_INPUT_VOLTAGE_REGULATION, value);
+		if( (battery->capacity < 99 &&
+			battery->status != POWER_SUPPLY_STATUS_FULL) ||
+			battery->wc_status == SEC_WIRELESS_PAD_WPC_HV ) {
+			pr_info("%s changed wireless vout voltage to default value, charging time = %ld \n",__func__, battery->charging_passed_time);
+
+			value.intval = WIRELESS_VRECT_ADJ_OFF;
+			psy_do_property(battery->pdata->wireless_charger_name, set,
+				POWER_SUPPLY_PROP_INPUT_VOLTAGE_REGULATION, value);
+		}
 	}
 
-	if ( (battery->wc_status == SEC_WIRELESS_PAD_PMA) &&
+	if ( (battery->wc_status != SEC_WIRELESS_PAD_NONE) &&
+		!battery->full_mode &&
+		battery->siop_level == 100) {
+		battery->full_mode = true;
+
+		if ( battery->wc_status != SEC_WIRELESS_PAD_WPC_HV) {
+			pr_info("%s vrect headroom set ROOM 2 \n",__func__);
+			value.intval = WIRELESS_VRECT_ADJ_ROOM_2;
+			psy_do_property(battery->pdata->wireless_charger_name, set,
+				POWER_SUPPLY_PROP_INPUT_VOLTAGE_REGULATION, value);
+		}
+	}
+
+	if ( (battery->wc_status != SEC_WIRELESS_PAD_NONE) &&
 		battery->complete_timetofull) {
 		pr_info("%s check out miss align, charging time = %ld \n",__func__, battery->charging_passed_time);
 
@@ -2826,6 +2846,16 @@ static void sec_bat_siop_work(struct work_struct *work)
 	pr_info("%s : set current by siop level(%d)\n",__func__, battery->siop_level);
 	psy_do_property(battery->pdata->charger_name, set,
 		POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, value);
+
+#if defined(CONFIG_WIRELESS_CHARGER_HIGH_VOLTAGE)
+	if( (battery->wc_status == SEC_WIRELESS_PAD_WPC || battery->wc_status == SEC_WIRELESS_PAD_PMA) &&
+		(battery->capacity >= 99 ||
+		battery->status == POWER_SUPPLY_STATUS_FULL)){
+		value.intval = battery->siop_level;
+		psy_do_property(battery->pdata->wireless_charger_name, set,
+			POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, value);
+	}
+#endif
 
 #if !defined(CONFIG_SEC_FACTORY)
 	if ( (battery->pdata->chg_temp_check | battery->pdata->wpc_temp_check) && battery->siop_level >= 100)
@@ -2938,7 +2968,8 @@ static void sec_bat_monitor_work(
 #endif
 
 #if defined(CONFIG_WIRELESS_CHARGER_INBATTERY) || defined(CONFIG_WIRELESS_CHARGER_HIGH_VOLTAGE)
-	sec_bat_cc_cv_mode_check(battery);
+	if(battery->wc_status != SEC_WIRELESS_PAD_NONE)
+		sec_bat_cc_cv_mode_check(battery);
 #endif
 
 	/* 0. test mode */
@@ -3027,18 +3058,18 @@ continue_monitor:
 			"%s: battery->stability_test(%d), battery->eng_not_full_status(%d)\n",
 			__func__, battery->stability_test, battery->eng_not_full_status);
 #endif
-	if (battery->store_mode && battery->cable_type != POWER_SUPPLY_TYPE_BATTERY) {
+	if (battery->store_mode && !lpcharge && (battery->cable_type != POWER_SUPPLY_TYPE_BATTERY)) {
 
 		dev_info(battery->dev,
 			"%s: @battery->capacity = (%d), battery->status= (%d), battery->store_mode=(%d)\n",
 			__func__, battery->capacity, battery->status, battery->store_mode);
 
-		if ((battery->capacity >= 35) && (battery->status == POWER_SUPPLY_STATUS_CHARGING)) {
+		if ((battery->capacity >= STORE_MODE_CHARGING_MAX) && (battery->status == POWER_SUPPLY_STATUS_CHARGING)) {
 			sec_bat_set_charging_status(battery,
 					POWER_SUPPLY_STATUS_DISCHARGING);
 			sec_bat_set_charge(battery, false);
 		}
-		if ((battery->capacity <= 30) && (battery->status == POWER_SUPPLY_STATUS_DISCHARGING)) {
+		if ((battery->capacity <= STORE_MODE_CHARGING_MIN) && (battery->status == POWER_SUPPLY_STATUS_DISCHARGING)) {
 			sec_bat_set_charging_status(battery,
 					POWER_SUPPLY_STATUS_CHARGING);
 			sec_bat_set_charge(battery, true);
@@ -3226,14 +3257,14 @@ static void sec_bat_cable_work(struct work_struct *work)
 			else
 				sec_bat_set_charging_status(battery,
 						POWER_SUPPLY_STATUS_CHARGING);
-		}
 
-		if (sec_bat_set_charge(battery, true))
-			goto end_of_cable_work;
+			if (sec_bat_set_charge(battery, true))
+				goto end_of_cable_work;
+		}
 
 #if defined(CONFIG_CALC_TIME_TO_FULL)
 		queue_delayed_work_on(0, battery->monitor_wqueue, &battery->timetofull_work,
-					msecs_to_jiffies(4000));
+					msecs_to_jiffies(5000));
 #endif
 #if defined(ANDROID_ALARM_ACTIVATED)
 		/* No need for wakelock in Alarm */
@@ -4753,7 +4784,7 @@ ssize_t sec_bat_store_attrs(
 							POWER_SUPPLY_PROP_CURRENT_MAX, value);
 #if defined(CONFIG_CALC_TIME_TO_FULL)
 					queue_delayed_work_on(0, battery->monitor_wqueue, &battery->timetofull_work,
-							msecs_to_jiffies(4000));
+							msecs_to_jiffies(5000));
 #endif
 					wake_lock(&battery->monitor_wake_lock);
 					queue_delayed_work_on(0, battery->monitor_wqueue, &battery->monitor_work, 0);
@@ -4773,7 +4804,7 @@ ssize_t sec_bat_store_attrs(
 
 #if defined(CONFIG_CALC_TIME_TO_FULL)
 					queue_delayed_work_on(0, battery->monitor_wqueue, &battery->timetofull_work,
-							msecs_to_jiffies(4000));
+							msecs_to_jiffies(5000));
 #endif
 					wake_lock(&battery->monitor_wake_lock);
 					queue_delayed_work_on(0, battery->monitor_wqueue, &battery->monitor_work, 0);
@@ -5708,7 +5739,7 @@ static int batt_handle_notification(struct notifier_block *nb,
 		battery->ps_status = true;
 		battery->ps_enable = true;
 		battery->ps_changed = true;
-
+		battery->wire_status = cable_type;
 		dev_info(battery->dev,
 			"%s: power sharing cable plugin (%d)\n", __func__, battery->ps_status);
 	} else if (cable_type == POWER_SUPPLY_TYPE_WIRELESS) {
@@ -5774,25 +5805,16 @@ static int batt_handle_notification(struct notifier_block *nb,
 
 	if ((cable_type >= 0) &&
 	    cable_type <= SEC_SIZEOF_POWER_SUPPLY_TYPE) {
-		if ((cable_type == POWER_SUPPLY_TYPE_POWER_SHARING)
-		    || (cable_type == POWER_SUPPLY_TYPE_OTG)) {
-			wake_lock(&battery->monitor_wake_lock);
-			queue_delayed_work_on(0, battery->monitor_wqueue, &battery->monitor_work, 0);
-		} else if((cable_type == POWER_SUPPLY_TYPE_BATTERY)
-					&& battery->ps_status) {
+		if((cable_type == POWER_SUPPLY_TYPE_BATTERY) && battery->ps_status) {
 			battery->ps_status = false;
 			dev_info(battery->dev,
 				"%s: power sharing cable plugout (%d)\n", __func__, battery->ps_status);
-			wake_lock(&battery->monitor_wake_lock);
-			queue_delayed_work_on(0, battery->monitor_wqueue, &battery->monitor_work, 0);
-		} else if(cable_type != battery->cable_type) {
+			wake_lock(&battery->cable_wake_lock);
+			queue_delayed_work_on(0, battery->monitor_wqueue, &battery->cable_work, 0);
+		} else {
 			wake_lock(&battery->cable_wake_lock);
 			queue_delayed_work_on(0, battery->monitor_wqueue,
 					   &battery->cable_work, 0);
-		} else {
-			dev_info(battery->dev,
-				"%s: Cable is Not Changed(%d)\n",
-				__func__, battery->cable_type);
 		}
 	}
 
@@ -6767,11 +6789,19 @@ static int __devinit sec_battery_probe(struct platform_device *pdev)
 	battery->cable_type = POWER_SUPPLY_TYPE_BATTERY;
 	battery->test_mode = 0;
 	battery->factory_mode = false;
+#if defined(CONFIG_STORE_MODE)
+	battery->store_mode = true;
+#else
 	battery->store_mode = false;
+#endif
 	battery->slate_mode = false;
 	battery->is_hc_usb = false;
 	battery->ignore_siop = false;
+
+#if defined(CONFIG_WIRELESS_CHARGER_INBATTERY) || defined(CONFIG_WIRELESS_CHARGER_HIGH_VOLTAGE)
 	battery->cc_cv_mode = 0;
+	battery->full_mode = false;
+#endif
 
 	battery->skip_chg_temp_check = false;
 	battery->skip_wpc_temp_check = false;
